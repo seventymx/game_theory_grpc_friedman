@@ -14,6 +14,7 @@ import time
 import json
 import os
 import sys
+from google.protobuf import empty_pb2
 
 # Add the generated directory to the Python path
 sys.path.append(os.path.join(os.path.dirname(__file__), 'generated'))
@@ -94,9 +95,14 @@ def main():
         name='Friedman',
         address=f'https://localhost:{port}'
     )
-    response = playing_field_stub.Subscribe(strategy_info)
-    if response.code != grpc.StatusCode.OK:
-        raise RuntimeError(f"Failed to subscribe to PlayingField service: {response.details}")
+    
+    try:
+        response = playing_field_stub.Subscribe(strategy_info)
+        if not isinstance(response, empty_pb2.Empty):
+            raise RuntimeError("Failed to subscribe to PlayingField service: Unexpected response type")
+        print("Successfully subscribed to the PlayingField service")
+    except grpc.RpcError as e:
+        raise RuntimeError(f"gRPC error occurred: {e}")
 
     try:
         # Keep the server running
