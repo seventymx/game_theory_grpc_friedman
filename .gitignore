@@ -1,2 +1,5 @@
 # Generated gRPC files
 generated/*
+
+# Nix build output
+result

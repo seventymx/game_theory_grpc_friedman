@@ -8,3 +8,11 @@ Update-PythonGrpc -ProtosArray @("model", "strategy", "playing_field")
 # - The playing_field service has to be started first
 python3 friedman_strategy.py
 ```
+
+## Building the Project with Nix
+
+To build the project using Nix, you can run the following command:
+
+```sh
+nix build
+```

@@ -20,13 +20,16 @@
   };
 
   outputs =
-    { self, ... }@inputs:
+    { self, base_flake, ... }@inputs:
     inputs.flake-utils.lib.eachDefaultSystem (
       system:
       let
         unstable = import inputs.nixpkgs { inherit system; };
 
-        baseDevShell = inputs.base_flake.outputs.devShell.${system};
+        pname = "friedman-service";
+        version = "${base_flake.majorMinorVersion.${system}}.0";
+
+        baseDevShell = base_flake.devShell.${system};
 
         # Create a custom Python environment with the necessary packages
         myPython = unstable.python312.withPackages (
@@ -36,12 +39,45 @@
             protobuf
           ]
         );
+
+        dependencies = baseDevShell.buildInputs ++ [ myPython ];
       in
       {
         devShell = unstable.mkShell {
-          buildInputs = baseDevShell.buildInputs ++ [ myPython ];
-
+          buildInputs = dependencies;
           shellHook = baseDevShell.shellHook;
+        };
+
+        packages.default = unstable.stdenv.mkDerivation {
+          pname = pname;
+          version = version;
+
+          src = ./.;
+
+          buildInputs = dependencies;
+
+          buildPhase = ''
+            # Set environment variables for compilation
+            export PROTOBUF_PATH=${base_flake.protos.${system}}
+
+            export PSModulePath="${base_flake.powershell_modules.${system}}"
+
+            pwsh -Command "& {
+              Import-Module GrpcGenerator
+
+              # Generate the gRPC client and server code from the protos
+              Update-PythonGrpc -ProtosArray @('model', 'strategy', 'playing_field')
+            }"
+
+            # Copy all .py files to the output directory while preserving the directory structure
+            rsync -av --include='*/' --include='*.py' --include='LICENSE' --exclude='*' . "$out"
+          '';
+
+          meta = with inputs.nixpkgs.lib; {
+            description = "The main service of the Game Theory Demo Application.";
+            license = licenses.mpl20;
+            maintainers = with maintainers; [ steffen70 ];
+          };
         };
       }
     );
