@@ -74,7 +74,7 @@
           '';
 
           meta = with inputs.nixpkgs.lib; {
-            description = "The main service of the Game Theory Demo Application.";
+            description = "Friedman strategy service that subscribes to playing_field and gets invoked during matchups.";
             license = licenses.mpl20;
             maintainers = with maintainers; [ steffen70 ];
           };
